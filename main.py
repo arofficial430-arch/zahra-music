@@ -1,56 +1,87 @@
+
 import os
-from pyrogram import Client, filters
-from pyrogram.types import (
-    InlineKeyboardMarkup,
-    InlineKeyboardButton
-)
+import asyncio
+from pyrogram import Client, filters, idle
+from pytgcalls import PyTgCalls
 
 API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
 BOT_TOKEN = os.environ["BOT_TOKEN"]
+STRING_SESSION = os.environ["STRING_SESSION"]
 
-app = Client(
-    "ZahraMusic",
+bot = Client(
+    "ZahraBot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
 
-@app.on_message(filters.command("start"))
+assistant = Client(
+    "ZahraAssistant",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=STRING_SESSION
+)
+
+calls = PyTgCalls(assistant)
+
+@bot.on_message(filters.command("start"))
 async def start(client, message):
-    buttons = InlineKeyboardMarkup([
-        [InlineKeyboardButton("➕ Add Me In Your Group", url=f"https://t.me/{(await client.get_me()).username}?startgroup=true")],
-        [InlineKeyboardButton("📚 Help And Commands", callback_data="help")],
-        [
-            InlineKeyboardButton("🛠️ Support", callback_data="support"),
-            InlineKeyboardButton("🌐 Updates", callback_data="updates")
-        ],
-        [InlineKeyboardButton("👑 Owner", callback_data="owner")]
-    ])
-
     await message.reply_text(
-        "🎵 WELCOME TO ZAHRA MUSIC 🎵\n\n"
-        "I am your Telegram Music Player Bot!\n\n"
-        "🔥 Music Player\n"
-        "❤️ Smooth Playback\n"
-        "🎧 Group Voice Chat",
-        reply_markup=buttons
+        "🎵 Welcome to ZAHRA MUSIC 🎵\n\n"
+        "/play URL - Play audio\n"
+        "/pause - Pause\n"
+        "/resume - Resume\n"
+        "/stop - Stop"
     )
 
-@app.on_callback_query()
-async def callbacks(client, query):
-    texts = {
-        "help": "📚 ZAHRA MUSIC COMMANDS\n\n/play - Play music\n/pause - Pause music\n/resume - Resume music\n/skip - Skip music\n/stop - Stop music",
-        "support": "🛠️ Contact support soon!",
-        "updates": "🌐 ZAHRA MUSIC Updates coming soon!",
-        "owner": "👑 ZAHRA MUSIC Owner"
-    }
+@bot.on_message(filters.command("play"))
+async def play(client, message):
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "Usage: /play AUDIO_URL"
+        )
 
-    await query.answer()
-    await query.message.reply_text(
-        texts.get(query.data, "Welcome to ZAHRA MUSIC!")
-    )
+    url = message.text.split(maxsplit=1)[1]
 
-print("ZAHRA MUSIC BOT IS STARTING...")
-app.run()
+    try:
+        await calls.play(message.chat.id, url)
+        await message.reply_text("🎵 Playing in Voice Chat!")
+    except Exception as e:
+        await message.reply_text(f"Play Error: {e}")
 
+@bot.on_message(filters.command("pause"))
+async def pause(client, message):
+    try:
+        await calls.pause(message.chat.id)
+        await message.reply_text("⏸ Paused")
+    except Exception as e:
+        await message.reply_text(f"Error: {e}")
+
+@bot.on_message(filters.command("resume"))
+async def resume(client, message):
+    try:
+        await calls.resume(message.chat.id)
+        await message.reply_text("▶️ Resumed")
+    except Exception as e:
+        await message.reply_text(f"Error: {e}")
+
+@bot.on_message(filters.command("stop"))
+async def stop(client, message):
+    try:
+        await calls.leave_call(message.chat.id)
+        await message.reply_text("⏹ Stopped")
+    except Exception as e:
+        await message.reply_text(f"Error: {e}")
+
+async def main():
+    await bot.start()
+    await assistant.start()
+    calls.start()
+    print("ZAHRA MUSIC BOT STARTED!")
+    await idle()
+    calls.stop()
+    await assistant.stop()
+    await bot.stop()
+
+asyncio.run(main())
