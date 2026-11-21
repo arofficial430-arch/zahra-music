@@ -7,8 +7,6 @@ import imageio_ffmpeg
 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-import static_ffmpeg
-static_ffmpeg.add_paths()
 ffmpeg_link = os.path.abspath("ffmpeg")
 
 if not os.path.exists(ffmpeg_link):
