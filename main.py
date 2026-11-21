@@ -4,6 +4,8 @@ import asyncio
 
 # FFmpeg setup
 import imageio_ffmpeg
+ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+ffprobe_exe = ffmpeg_exe.replace("ffmpeg", "ffprobe")
 
 ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 ffmpeg_link = os.path.abspath("ffmpeg")
