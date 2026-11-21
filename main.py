@@ -1,8 +1,22 @@
 
 import os
 import asyncio
+
+# FFmpeg setup
+import imageio_ffmpeg
+
+ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+ffmpeg_link = os.path.abspath("ffmpeg")
+
+if not os.path.exists(ffmpeg_link):
+    os.symlink(ffmpeg_exe, ffmpeg_link)
+
+os.environ["PATH"] = os.path.dirname(ffmpeg_link) + os.pathsep + os.environ.get("PATH", "")
+
 from pyrogram import Client, filters, idle
 from pytgcalls import PyTgCalls
+from pytgcalls.types import MediaStream
+from yt_dlp import YoutubeDL
 
 API_ID = int(os.environ["API_ID"])
 API_HASH = os.environ["API_HASH"]
@@ -29,7 +43,7 @@ calls = PyTgCalls(assistant)
 async def start(client, message):
     await message.reply_text(
         "🎵 Welcome to ZAHRA MUSIC 🎵\n\n"
-        "/play URL - Play audio\n"
+        "/play Song Name - Search and Play\n"
         "/pause - Pause\n"
         "/resume - Resume\n"
         "/stop - Stop"
@@ -39,16 +53,45 @@ async def start(client, message):
 async def play(client, message):
     if len(message.command) < 2:
         return await message.reply_text(
-            "Usage: /play AUDIO_URL"
+            "Usage: /play Song Name"
         )
 
-    url = message.text.split(maxsplit=1)[1]
+    query = message.text.split(maxsplit=1)[1]
+    status = await message.reply_text("🔎 Searching YouTube...")
 
     try:
-        await calls.play(message.chat.id, url)
-        await message.reply_text("🎵 Playing in Voice Chat!")
+        def search_song():
+            options = {
+                "format": "bestaudio/best",
+                "noplaylist": True,
+                "quiet": True,
+                "no_warnings": True
+            }
+            with YoutubeDL(options) as ydl:
+                result = ydl.extract_info(
+                    "ytsearch1:" + query,
+                    download=False
+                )
+                return result["entries"][0]
+
+        song = await asyncio.to_thread(search_song)
+        stream_url = song["url"]
+        title = song.get("title", query)
+
+        await calls.play(
+            message.chat.id,
+            MediaStream(
+                stream_url,
+                video_flags=MediaStream.Flags.IGNORE
+            )
+        )
+
+        await status.edit_text(
+            f"🎵 Now Playing:\n{title}"
+        )
+
     except Exception as e:
-        await message.reply_text(f"Play Error: {e}")
+        await status.edit_text(f"Play Error: {e}")
 
 @bot.on_message(filters.command("pause"))
 async def pause(client, message):
@@ -78,8 +121,11 @@ async def main():
     await bot.start()
     await assistant.start()
     await calls.start()
+
     print("ZAHRA MUSIC BOT STARTED!")
+
     await idle()
+
     await calls.stop()
     await assistant.stop()
     await bot.stop()
