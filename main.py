@@ -77,10 +77,10 @@ async def stop(client, message):
 async def main():
     await bot.start()
     await assistant.start()
-    calls.start()
+    await calls.start()
     print("ZAHRA MUSIC BOT STARTED!")
     await idle()
-    calls.stop()
+    await calls.stop()
     await assistant.stop()
     await bot.stop()
 
