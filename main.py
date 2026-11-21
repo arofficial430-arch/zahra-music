@@ -69,7 +69,7 @@ async def play(client, message):
             }
             with YoutubeDL(options) as ydl:
                 result = ydl.extract_info(
-                    "ytsearch1:" + query,
+                    "scsearch1:" + query,
                     download=False
                 )
                 return result["entries"][0]
