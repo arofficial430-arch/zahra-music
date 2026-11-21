@@ -3,3 +3,4 @@ py-tgcalls[pyrogram]==3.0.1
 tgcrypto
 yt-dlp
 imageio-ffmpeg
+static-ffmpeg
