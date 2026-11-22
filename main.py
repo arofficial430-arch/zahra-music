@@ -118,17 +118,20 @@ async def stop(client, message):
     except Exception as e:
         await message.reply_text(f"Error: {e}")
 
+
 async def main():
-    await bot.start()
-    await assistant.start()
-    await calls.start()
+    async with bot:
+        async with assistant:
+            calls = PyTgCalls(assistant)
+            await calls.start()
 
-    print("ZAHRA MUSIC BOT STARTED!")
+            print("ZAHRA MUSIC BOT STARTED!")
 
-    await idle()
+            await idle()
 
-    await calls.stop()
-    await assistant.stop()
-    await bot.stop()
+            await calls.stop()
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
